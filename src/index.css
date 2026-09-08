@@ -1,0 +1,120 @@
+@import url('https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,400..700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Clean teal & paper product palette */
+    --background: 45 100% 99%;         /* paper */
+    --foreground: 193 65% 8%;          /* ink */
+
+    --card: 0 0% 100%;
+    --card-foreground: 193 65% 8%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 193 65% 8%;
+
+    --primary: 181 100% 30%;           /* teal */
+    --primary-foreground: 45 100% 99%;
+
+    --secondary: 50 25% 96%;           /* warm */
+    --secondary-foreground: 193 65% 8%;
+
+    --muted: 50 25% 96%;
+    --muted-foreground: 195 9% 42%;
+
+    --accent: 176 47% 91%;             /* soft teal */
+    --accent-foreground: 180 100% 12%;
+
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 45 100% 99%;
+
+    --border: 180 17% 88%;
+    --input: 180 17% 88%;
+    --ring: 181 100% 30%;
+
+    --radius: 1rem;
+
+    --sidebar-background: 45 100% 99%;
+    --sidebar-foreground: 193 65% 8%;
+    --sidebar-primary: 181 100% 30%;
+    --sidebar-primary-foreground: 45 100% 99%;
+    --sidebar-accent: 50 25% 96%;
+    --sidebar-accent-foreground: 193 65% 8%;
+    --sidebar-border: 180 17% 88%;
+    --sidebar-ring: 181 100% 30%;
+
+    --teal-dark: 180 100% 12%;
+    --teal-dark-foreground: 176 47% 91%;
+
+    --highlight: 38 91% 55%;           /* gold */
+    --highlight-foreground: 193 65% 8%;
+
+    --hero-overlay: linear-gradient(180deg, hsl(193 65% 8% / 0.45) 0%, hsl(193 65% 8% / 0.28) 45%, hsl(45 100% 99% / 0.05) 78%, hsl(45 100% 99% / 0.95) 100%);
+    --card-shadow: 0 14px 38px -18px hsl(190 70% 14% / 0.14);
+    --card-shadow-hover: 0 26px 54px -20px hsl(190 70% 14% / 0.24);
+    --gradient-highlight: linear-gradient(100deg, hsl(38 91% 55%), hsl(30 90% 50%));
+  }
+
+  .dark {
+    --background: 190 45% 7%;
+    --foreground: 176 30% 94%;
+    --card: 190 40% 10%;
+    --card-foreground: 176 30% 94%;
+    --popover: 190 40% 10%;
+    --popover-foreground: 176 30% 94%;
+    --primary: 181 70% 45%;
+    --primary-foreground: 190 45% 7%;
+    --secondary: 190 25% 15%;
+    --secondary-foreground: 176 30% 94%;
+    --muted: 190 25% 15%;
+    --muted-foreground: 185 12% 68%;
+    --accent: 190 30% 18%;
+    --accent-foreground: 176 40% 90%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 176 30% 94%;
+    --border: 190 20% 20%;
+    --input: 190 20% 20%;
+    --ring: 181 70% 45%;
+    --teal-dark: 190 45% 10%;
+    --teal-dark-foreground: 176 40% 90%;
+    --highlight: 38 91% 58%;
+    --highlight-foreground: 190 45% 7%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  h1, h2, h3, h4 {
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  ::selection { background: hsl(var(--primary) / 0.2); }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+
+  .eyebrow {
+    @apply text-[11px] font-bold uppercase tracking-[0.2em] text-primary;
+  }
+
+  .display {
+    font-weight: 800;
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+  }
+
+  .soft-card {
+    @apply rounded-3xl border border-border bg-card;
+    box-shadow: var(--card-shadow);
+  }
+}
