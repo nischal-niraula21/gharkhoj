@@ -18,7 +18,7 @@ if (cloudinaryEnabled) {
 const uploadCloudinary = (buffer) =>
   new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
-      { folder: "gharkhoj/rooms", resource_type: "image", transformation: [{ quality: "auto", fetch_format: "auto" }] },
+      { folder: process.env.CLOUDINARY_FOLDER || "gharkhoj/rooms", resource_type: "image", transformation: [{ quality: "auto", fetch_format: "auto" }] },
       (error, result) => (error ? reject(error) : resolve({ url: result.secure_url, publicId: result.public_id }))
     );
     stream.end(buffer);
@@ -40,8 +40,8 @@ export const deleteImage = async (image) => {
   if (!image?.publicId) return;
   if (image.publicId.startsWith("local:")) {
     const fileName = image.publicId.slice(6);
-    await fs.unlink(path.resolve("server/uploads", fileName)).catch(() => {});
+    await fs.unlink(path.resolve("server/uploads", fileName)).catch(() => { });
     return;
   }
-  if (cloudinaryEnabled) await cloudinary.uploader.destroy(image.publicId).catch(() => {});
+  if (cloudinaryEnabled) await cloudinary.uploader.destroy(image.publicId).catch(() => { });
 };

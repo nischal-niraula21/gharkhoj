@@ -1,48 +1,1401 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { api, adminRequestConfig, getErrorMessage } from "@/lib/api";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+import {
+  api,
+  adminRequestConfig,
+  getErrorMessage,
+} from "@/lib/api";
+
 import { toast } from "sonner";
-import { ShieldCheck, LayoutDashboard, Home, Clock, Users, Eye, Flag, MessageSquare, LogOut, Check, XCircle, Trash2, Ban, Loader2, Search, MapPin, Phone, Mail, Menu, X } from "lucide-react";
 
-const menu=[{key:"dashboard",label:"Dashboard",icon:LayoutDashboard},{key:"listings",label:"Listings",icon:Home},{key:"pending",label:"Pending Listings",icon:Clock},{key:"owners",label:"Property Owners",icon:Users},{key:"reports",label:"Reports",icon:Flag},{key:"messages",label:"Messages",icon:MessageSquare}];
-const badge=(status)=>({approved:"bg-emerald-100 text-emerald-700",pending:"bg-amber-100 text-amber-700",rejected:"bg-red-100 text-red-700",suspended:"bg-red-100 text-red-700",rented:"bg-slate-200 text-slate-700",draft:"bg-slate-100 text-slate-600",active:"bg-emerald-100 text-emerald-700",blocked:"bg-red-100 text-red-700",new:"bg-blue-100 text-blue-700",read:"bg-slate-100 text-slate-700",resolved:"bg-emerald-100 text-emerald-700",reviewed:"bg-emerald-100 text-emerald-700",dismissed:"bg-slate-100 text-slate-700"}[status]||"bg-slate-100 text-slate-700");
+import {
+  ShieldCheck,
+  LayoutDashboard,
+  Home,
+  Clock,
+  Users,
+  Eye,
+  Flag,
+  MessageSquare,
+  LogOut,
+  Check,
+  XCircle,
+  Trash2,
+  Loader2,
+  Search,
+  MapPin,
+  Menu,
+  X,
+} from "lucide-react";
 
-const Admin=()=>{
-  const navigate=useNavigate(); const [admin,setAdmin]=useState(null); const [section,setSection]=useState("dashboard"); const [mobile,setMobile]=useState(false); const [loading,setLoading]=useState(true);
-  const [stats,setStats]=useState({}); const [rooms,setRooms]=useState([]); const [owners,setOwners]=useState([]); const [messages,setMessages]=useState([]); const [reports,setReports]=useState([]); const [search,setSearch]=useState(""); const [reviewRoom,setReviewRoom]=useState(null); const [rejectionReason,setRejectionReason]=useState("");
+const menu = [
+  {
+    key: "dashboard",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    key: "listings",
+    label: "Listings",
+    icon: Home,
+  },
+  {
+    key: "pending",
+    label: "Pending Listings",
+    icon: Clock,
+  },
+  {
+    key: "owners",
+    label: "Property Owners",
+    icon: Users,
+  },
+  {
+    key: "reports",
+    label: "Reports",
+    icon: Flag,
+  },
+  {
+    key: "messages",
+    label: "Messages",
+    icon: MessageSquare,
+  },
+];
 
-  const request=(method,url,data)=>api.request({method,url,data,...adminRequestConfig()});
-  const load=async()=>{try{const [me,s,r,o,m,rep]=await Promise.all([request("get","/admin/me"),request("get","/admin/stats"),request("get","/admin/rooms"),request("get","/admin/owners"),request("get","/admin/messages"),request("get","/admin/reports")]);setAdmin(me.data.admin);setStats(s.data);setRooms(r.data.rooms||[]);setOwners(o.data.owners||[]);setMessages(m.data.messages||[]);setReports(rep.data.reports||[]);}catch(e){localStorage.removeItem("gharkhoj-admin-token");navigate("/admin/login",{replace:true});}finally{setLoading(false);}};
-  useEffect(()=>{if(!localStorage.getItem("gharkhoj-admin-token")){navigate("/admin/login",{replace:true});return;}load();},[]);
-  const refreshRooms=async()=>setRooms((await request("get","/admin/rooms")).data.rooms||[]);
-  const updateRoom=async(id,status,reason="")=>{try{await request("patch",`/admin/rooms/${id}`,{status,rejectionReason:reason});toast.success(`Listing ${status}`);setReviewRoom(null);setRejectionReason("");await Promise.all([refreshRooms(),request("get","/admin/stats").then((x)=>setStats(x.data))]);}catch(e){toast.error(getErrorMessage(e));}};
-  const deleteRoom=async(id)=>{if(!confirm("Delete this listing permanently?"))return;try{await request("delete",`/admin/rooms/${id}`);toast.success("Listing deleted");refreshRooms();}catch(e){toast.error(getErrorMessage(e));}};
-  const updateOwner=async(id,status)=>{try{await request("patch",`/admin/owners/${id}/status`,{status});setOwners((await request("get","/admin/owners")).data.owners||[]);toast.success("Owner status updated");}catch(e){toast.error(getErrorMessage(e));}};
-  const updateMessage=async(id,status)=>{try{await request("patch",`/admin/messages/${id}`,{status});setMessages((await request("get","/admin/messages")).data.messages||[]);}catch(e){toast.error(getErrorMessage(e));}};
-  const updateReport=async(id,status)=>{try{await request("patch",`/admin/reports/${id}`,{status});setReports((await request("get","/admin/reports")).data.reports||[]);}catch(e){toast.error(getErrorMessage(e));}};
-  const logout=()=>{localStorage.removeItem("gharkhoj-admin-token");navigate("/admin/login");};
-  const filtered=useMemo(()=>rooms.filter((r)=>{const q=search.toLowerCase();return !q||`${r.title} ${r.district} ${r.municipality} ${r.owner?.fullName||""}`.toLowerCase().includes(q);}),[rooms,search]);
-  if(loading)return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary"/></div>;
-  const viewRooms=section==="pending"?filtered.filter((r)=>r.status==="pending"):filtered;
-  return <div className="min-h-screen bg-slate-50 text-slate-900">
-    <aside className={`fixed inset-y-0 left-0 z-50 w-72 border-r bg-white p-5 transition-transform lg:translate-x-0 ${mobile?"translate-x-0":"-translate-x-full"}`}><div className="flex items-center justify-between"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-dark text-white"><ShieldCheck className="h-5 w-5"/></span><div><p className="font-extrabold">GharKhoj</p><p className="text-xs text-slate-500">Admin Console</p></div></div><button className="lg:hidden" onClick={()=>setMobile(false)}><X className="h-5 w-5"/></button></div><nav className="mt-8 space-y-1">{menu.map(({key,label,icon:Icon})=><button key={key} onClick={()=>{setSection(key);setMobile(false);}} className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold ${section===key?"bg-teal-dark text-white":"text-slate-600 hover:bg-slate-100"}`}><Icon className="h-4 w-4"/>{label}{key==="pending"&&stats.pendingApproval>0&&<span className="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">{stats.pendingApproval}</span>}</button>)}</nav><div className="absolute bottom-5 left-5 right-5"><div className="mb-3 rounded-xl bg-slate-100 p-3"><p className="text-sm font-bold">{admin?.name}</p><p className="truncate text-xs text-slate-500">{admin?.email}</p></div><Button variant="outline" onClick={logout} className="w-full gap-2"><LogOut className="h-4 w-4"/>Logout</Button></div></aside>
-    <div className="lg:pl-72"><header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-white/90 px-4 backdrop-blur lg:px-8"><div className="flex items-center gap-3"><button className="lg:hidden" onClick={()=>setMobile(true)}><Menu className="h-5 w-5"/></button><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">GharKhoj Admin</p><h1 className="text-lg font-extrabold">{menu.find((x)=>x.key===section)?.label}</h1></div></div>{["listings","pending"].includes(section)&&<div className="relative hidden w-72 md:block"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"/><Input value={search} onChange={(e)=>setSearch(e.target.value)} placeholder="Search listings..." className="pl-9"/></div>}</header>
-      <main className="p-4 lg:p-8">{section==="dashboard"&&<Dashboard stats={stats} rooms={rooms} reports={reports}/>} {section==="listings"&&<Listings rooms={viewRooms} onReview={setReviewRoom} onDelete={deleteRoom}/>} {section==="pending"&&<Listings rooms={viewRooms} onReview={setReviewRoom} onDelete={deleteRoom}/>} {section==="owners"&&<Owners owners={owners} updateOwner={updateOwner}/>} {section==="messages"&&<Messages messages={messages} updateMessage={updateMessage}/>} {section==="reports"&&<Reports reports={reports} updateReport={updateReport} setReviewRoom={(room)=>room&&setReviewRoom(rooms.find((r)=>(r._id||r.id)===(room._id||room.id)))}/>}</main>
+const badge = (status) =>
+  ({
+    approved: "bg-emerald-100 text-emerald-700",
+    pending: "bg-amber-100 text-amber-700",
+    rejected: "bg-red-100 text-red-700",
+    suspended: "bg-red-100 text-red-700",
+    rented: "bg-slate-200 text-slate-700",
+    draft: "bg-slate-100 text-slate-600",
+
+    active: "bg-emerald-100 text-emerald-700",
+    blocked: "bg-red-100 text-red-700",
+
+    new: "bg-blue-100 text-blue-700",
+    read: "bg-slate-100 text-slate-700",
+    resolved: "bg-emerald-100 text-emerald-700",
+
+    reviewed: "bg-emerald-100 text-emerald-700",
+    dismissed: "bg-slate-100 text-slate-700",
+  })[status] || "bg-slate-100 text-slate-700";
+
+const Admin = () => {
+  const navigate = useNavigate();
+
+  const [admin, setAdmin] = useState(null);
+  const [section, setSection] = useState("dashboard");
+  const [mobile, setMobile] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const [stats, setStats] = useState({});
+  const [rooms, setRooms] = useState([]);
+  const [owners, setOwners] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [reports, setReports] = useState([]);
+
+  const [search, setSearch] = useState("");
+  const [reviewRoom, setReviewRoom] = useState(null);
+  const [rejectionReason, setRejectionReason] =
+    useState("");
+
+  const request = useCallback(
+    (method, url, data) =>
+      api.request({
+        method,
+        url,
+        data,
+        ...adminRequestConfig(),
+      }),
+    [],
+  );
+
+  const load = useCallback(async () => {
+    try {
+      const [
+        me,
+        statsData,
+        roomsData,
+        ownersData,
+        messagesData,
+        reportsData,
+      ] = await Promise.all([
+        request("get", "/admin/me"),
+        request("get", "/admin/stats"),
+        request("get", "/admin/rooms"),
+        request("get", "/admin/owners"),
+        request("get", "/admin/messages"),
+        request("get", "/admin/reports"),
+      ]);
+
+      setAdmin(me.data.admin);
+      setStats(statsData.data);
+      setRooms(roomsData.data.rooms || []);
+      setOwners(ownersData.data.owners || []);
+      setMessages(messagesData.data.messages || []);
+      setReports(reportsData.data.reports || []);
+    } catch {
+      localStorage.removeItem("gharkhoj-admin-token");
+
+      navigate("/admin/login", {
+        replace: true,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate, request]);
+
+  useEffect(() => {
+    if (!localStorage.getItem("gharkhoj-admin-token")) {
+      navigate("/admin/login", {
+        replace: true,
+      });
+
+      return;
+    }
+
+    load();
+  }, [load, navigate]);
+
+  const refreshRooms = async () => {
+    const response = await request(
+      "get",
+      "/admin/rooms",
+    );
+
+    setRooms(response.data.rooms || []);
+  };
+
+  const updateRoom = async (
+    id,
+    status,
+    reason = "",
+  ) => {
+    try {
+      await request(
+        "patch",
+        `/admin/rooms/${id}`,
+        {
+          status,
+          rejectionReason: reason,
+        },
+      );
+
+      toast.success(`Listing ${status}`);
+
+      setReviewRoom(null);
+      setRejectionReason("");
+
+      await Promise.all([
+        refreshRooms(),
+
+        request(
+          "get",
+          "/admin/stats",
+        ).then((response) =>
+          setStats(response.data),
+        ),
+      ]);
+    } catch (error) {
+      toast.error(
+        getErrorMessage(error),
+      );
+    }
+  };
+
+  const deleteRoom = async (id) => {
+    const confirmed = confirm(
+      "Delete this listing permanently?",
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await request(
+        "delete",
+        `/admin/rooms/${id}`,
+      );
+
+      toast.success("Listing deleted");
+
+      await refreshRooms();
+    } catch (error) {
+      toast.error(
+        getErrorMessage(error),
+      );
+    }
+  };
+
+  const updateOwner = async (
+    id,
+    status,
+  ) => {
+    try {
+      await request(
+        "patch",
+        `/admin/owners/${id}/status`,
+        {
+          status,
+        },
+      );
+
+      const response = await request(
+        "get",
+        "/admin/owners",
+      );
+
+      setOwners(
+        response.data.owners || [],
+      );
+
+      toast.success(
+        "Owner status updated",
+      );
+    } catch (error) {
+      toast.error(
+        getErrorMessage(error),
+      );
+    }
+  };
+
+  const updateMessage = async (
+    id,
+    status,
+  ) => {
+    try {
+      await request(
+        "patch",
+        `/admin/messages/${id}`,
+        {
+          status,
+        },
+      );
+
+      const response = await request(
+        "get",
+        "/admin/messages",
+      );
+
+      setMessages(
+        response.data.messages || [],
+      );
+    } catch (error) {
+      toast.error(
+        getErrorMessage(error),
+      );
+    }
+  };
+
+  const deleteMessage = async (id) => {
+    const confirmed = confirm(
+      "Delete this message permanently?",
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await request(
+        "delete",
+        `/admin/messages/${id}`,
+      );
+
+      setMessages((current) =>
+        current.filter(
+          (message) =>
+            message._id !== id,
+        ),
+      );
+
+      toast.success(
+        "Message deleted",
+      );
+    } catch (error) {
+      toast.error(
+        getErrorMessage(error),
+      );
+    }
+  };
+
+  const updateReport = async (
+    id,
+    status,
+  ) => {
+    try {
+      await request(
+        "patch",
+        `/admin/reports/${id}`,
+        {
+          status,
+        },
+      );
+
+      const response = await request(
+        "get",
+        "/admin/reports",
+      );
+
+      setReports(
+        response.data.reports || [],
+      );
+    } catch (error) {
+      toast.error(
+        getErrorMessage(error),
+      );
+    }
+  };
+
+  const logout = () => {
+    localStorage.removeItem(
+      "gharkhoj-admin-token",
+    );
+
+    navigate("/admin/login");
+  };
+
+  const filtered = useMemo(() => {
+    return rooms.filter((room) => {
+      const query =
+        search.toLowerCase();
+
+      if (!query) return true;
+
+      return `${room.title} ${room.district} ${room.municipality} ${room.owner?.fullName || ""
+        }`
+        .toLowerCase()
+        .includes(query);
+    });
+  }, [rooms, search]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const viewRooms =
+    section === "pending"
+      ? filtered.filter(
+        (room) =>
+          room.status === "pending",
+      )
+      : filtered;
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      {/* Sidebar */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-72 border-r bg-white p-5 transition-transform lg:translate-x-0 ${mobile
+          ? "translate-x-0"
+          : "-translate-x-full"
+          }`}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-dark text-white">
+              <ShieldCheck className="h-5 w-5" />
+            </span>
+
+            <div>
+              <p className="font-extrabold">
+                GharKhoj
+              </p>
+
+              <p className="text-xs text-slate-500">
+                Admin Console
+              </p>
+            </div>
+          </div>
+
+          <button
+            className="lg:hidden"
+            onClick={() =>
+              setMobile(false)
+            }
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <nav className="mt-8 space-y-1">
+          {menu.map(
+            ({
+              key,
+              label,
+              icon: Icon,
+            }) => (
+              <button
+                key={key}
+                onClick={() => {
+                  setSection(key);
+                  setMobile(false);
+                }}
+                className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold ${section === key
+                  ? "bg-teal-dark text-white"
+                  : "text-slate-600 hover:bg-slate-100"
+                  }`}
+              >
+                <Icon className="h-4 w-4" />
+
+                {label}
+
+                {key === "pending" &&
+                  stats.pendingApproval >
+                  0 && (
+                    <span className="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                      {
+                        stats.pendingApproval
+                      }
+                    </span>
+                  )}
+              </button>
+            ),
+          )}
+        </nav>
+
+        <div className="absolute bottom-5 left-5 right-5">
+          <div className="mb-3 rounded-xl bg-slate-100 p-3">
+            <p className="text-sm font-bold">
+              {admin?.name}
+            </p>
+
+            <p className="truncate text-xs text-slate-500">
+              {admin?.email}
+            </p>
+          </div>
+
+          <Button
+            variant="outline"
+            onClick={logout}
+            className="w-full gap-2"
+          >
+            <LogOut className="h-4 w-4" />
+
+            Logout
+          </Button>
+        </div>
+      </aside>
+
+      {/* Main */}
+      <div className="lg:pl-72">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-white/90 px-4 backdrop-blur lg:px-8">
+          <div className="flex items-center gap-3">
+            <button
+              className="lg:hidden"
+              onClick={() =>
+                setMobile(true)
+              }
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
+                GharKhoj Admin
+              </p>
+
+              <h1 className="text-lg font-extrabold">
+                {
+                  menu.find(
+                    (item) =>
+                      item.key === section,
+                  )?.label
+                }
+              </h1>
+            </div>
+          </div>
+
+          {[
+            "listings",
+            "pending",
+          ].includes(section) && (
+              <div className="relative hidden w-72 md:block">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
+                <Input
+                  value={search}
+                  onChange={(e) =>
+                    setSearch(
+                      e.target.value,
+                    )
+                  }
+                  placeholder="Search listings..."
+                  className="pl-9"
+                />
+              </div>
+            )}
+        </header>
+
+        <main className="p-4 lg:p-8">
+          {section ===
+            "dashboard" && (
+              <Dashboard
+                stats={stats}
+                rooms={rooms}
+                reports={reports}
+              />
+            )}
+
+          {section ===
+            "listings" && (
+              <Listings
+                rooms={viewRooms}
+                onReview={setReviewRoom}
+                onDelete={deleteRoom}
+              />
+            )}
+
+          {section === "pending" && (
+            <Listings
+              rooms={viewRooms}
+              onReview={setReviewRoom}
+              onDelete={deleteRoom}
+            />
+          )}
+
+          {section === "owners" && (
+            <Owners
+              owners={owners}
+              updateOwner={
+                updateOwner
+              }
+            />
+          )}
+
+          {section ===
+            "messages" && (
+              <Messages
+                messages={messages}
+                updateMessage={
+                  updateMessage
+                }
+                deleteMessage={
+                  deleteMessage
+                }
+              />
+            )}
+
+          {section ===
+            "reports" && (
+              <Reports
+                reports={reports}
+                updateReport={
+                  updateReport
+                }
+                setReviewRoom={(
+                  room,
+                ) => {
+                  if (!room) return;
+
+                  const found =
+                    rooms.find(
+                      (item) =>
+                        (item._id ||
+                          item.id) ===
+                        (room._id ||
+                          room.id),
+                    );
+
+                  if (found) {
+                    setReviewRoom(
+                      found,
+                    );
+                  }
+                }}
+              />
+            )}
+        </main>
+      </div>
+
+      {/* Listing Review Dialog */}
+      <Dialog
+        open={Boolean(reviewRoom)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReviewRoom(null);
+          }
+        }}
+      >
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Review Listing
+            </DialogTitle>
+          </DialogHeader>
+
+          {reviewRoom && (
+            <div className="space-y-5">
+              <div className="grid grid-cols-3 gap-2">
+                {(
+                  reviewRoom.images || []
+                )
+                  .slice(0, 6)
+                  .map(
+                    (image, index) => (
+                      <img
+                        key={index}
+                        src={
+                          image.url ||
+                          image
+                        }
+                        alt=""
+                        className="aspect-[4/3] w-full rounded-xl object-cover"
+                      />
+                    ),
+                  )}
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-extrabold">
+                  {reviewRoom.title}
+                </h2>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  {[
+                    reviewRoom.area,
+                    reviewRoom.municipality,
+                    reviewRoom.district,
+                  ]
+                    .filter(Boolean)
+                    .join(", ")}
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Data
+                  label="Rent"
+                  value={`NPR ${Number(
+                    reviewRoom.monthlyRent ||
+                    0,
+                  ).toLocaleString(
+                    "en-NP",
+                  )}`}
+                />
+
+                <Data
+                  label="Room Type"
+                  value={
+                    reviewRoom.roomType
+                  }
+                />
+
+                <Data
+                  label="Nearest Landmark"
+                  value={`${reviewRoom.nearestLandmark} · ${reviewRoom.landmarkDistance}`}
+                />
+
+                <Data
+                  label="Owner"
+                  value={`${reviewRoom.owner
+                    ?.fullName || "—"
+                    } · ${reviewRoom.owner
+                      ?.phone || ""
+                    }`}
+                />
+              </div>
+
+              <div>
+                <p className="mb-2 text-sm font-bold">
+                  Facilities
+                </p>
+
+                <div className="flex flex-wrap gap-2">
+                  {(
+                    reviewRoom.facilities ||
+                    []
+                  ).map(
+                    (facility) => (
+                      <span
+                        key={facility}
+                        className="rounded-full bg-slate-100 px-3 py-1 text-xs"
+                      >
+                        {facility}
+                      </span>
+                    ),
+                  )}
+                </div>
+              </div>
+
+              <Textarea
+                value={
+                  rejectionReason
+                }
+                onChange={(e) =>
+                  setRejectionReason(
+                    e.target.value,
+                  )
+                }
+                placeholder="Reason for rejection/requested changes (required when rejecting)"
+              />
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() =>
+                    updateRoom(
+                      reviewRoom._id ||
+                      reviewRoom.id,
+                      "approved",
+                    )
+                  }
+                  className="gap-2 bg-emerald-600 hover:bg-emerald-700"
+                >
+                  <Check className="h-4 w-4" />
+
+                  Approve Listing
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    updateRoom(
+                      reviewRoom._id ||
+                      reviewRoom.id,
+                      "pending",
+                      rejectionReason,
+                    )
+                  }
+                >
+                  Request Changes
+                </Button>
+
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    if (
+                      !rejectionReason.trim()
+                    ) {
+                      return toast.error(
+                        "Add a rejection reason first",
+                      );
+                    }
+
+                    updateRoom(
+                      reviewRoom._id ||
+                      reviewRoom.id,
+                      "rejected",
+                      rejectionReason,
+                    );
+                  }}
+                  className="gap-2"
+                >
+                  <XCircle className="h-4 w-4" />
+
+                  Reject Listing
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
-    <Dialog open={Boolean(reviewRoom)} onOpenChange={(v)=>!v&&setReviewRoom(null)}><DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto"><DialogHeader><DialogTitle>Review Listing</DialogTitle></DialogHeader>{reviewRoom&&<div className="space-y-5"><div className="grid grid-cols-3 gap-2">{(reviewRoom.images||[]).slice(0,6).map((img,i)=><img key={i} src={img.url||img} className="aspect-[4/3] w-full rounded-xl object-cover"/>)}</div><div><h2 className="text-2xl font-extrabold">{reviewRoom.title}</h2><p className="mt-1 text-sm text-slate-500">{[reviewRoom.area,reviewRoom.municipality,reviewRoom.district].filter(Boolean).join(", ")}</p></div><div className="grid gap-3 sm:grid-cols-2"><Data label="Rent" value={`NPR ${Number(reviewRoom.monthlyRent||0).toLocaleString("en-NP")}`}/><Data label="Room Type" value={reviewRoom.roomType}/><Data label="Nearest Landmark" value={`${reviewRoom.nearestLandmark} · ${reviewRoom.landmarkDistance}`}/><Data label="Owner" value={`${reviewRoom.owner?.fullName||"—"} · ${reviewRoom.owner?.phone||""}`}/></div><div><p className="mb-2 text-sm font-bold">Facilities</p><div className="flex flex-wrap gap-2">{(reviewRoom.facilities||[]).map((x)=><span key={x} className="rounded-full bg-slate-100 px-3 py-1 text-xs">{x}</span>)}</div></div><Textarea value={rejectionReason} onChange={(e)=>setRejectionReason(e.target.value)} placeholder="Reason for rejection/requested changes (required when rejecting)"/><div className="flex flex-wrap gap-2"><Button onClick={()=>updateRoom(reviewRoom._id||reviewRoom.id,"approved")} className="gap-2 bg-emerald-600 hover:bg-emerald-700"><Check className="h-4 w-4"/>Approve Listing</Button><Button variant="outline" onClick={()=>updateRoom(reviewRoom._id||reviewRoom.id,"pending",rejectionReason)}>Request Changes</Button><Button variant="destructive" onClick={()=>{if(!rejectionReason.trim())return toast.error("Add a rejection reason first");updateRoom(reviewRoom._id||reviewRoom.id,"rejected",rejectionReason);}} className="gap-2"><XCircle className="h-4 w-4"/>Reject Listing</Button></div></div>}</DialogContent></Dialog>
-  </div>;
+  );
 };
 
-const Dashboard=({stats,rooms,reports})=><><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6"><Stat label="Total Listings" value={stats.totalListings||0} icon={Home}/><Stat label="Active Listings" value={stats.activeListings||0} icon={Check}/><Stat label="Pending Approval" value={stats.pendingApproval||0} icon={Clock}/><Stat label="Registered Owners" value={stats.registeredOwners||0} icon={Users}/><Stat label="Listing Views" value={stats.totalListingViews||0} icon={Eye}/><Stat label="Reported Listings" value={stats.reportedListings||0} icon={Flag}/></div><div className="mt-8 grid gap-6 xl:grid-cols-2"><div className="rounded-2xl border bg-white p-6"><h2 className="font-extrabold">Recent Listings</h2><div className="mt-4 space-y-3">{rooms.slice(0,6).map((r)=><div key={r._id||r.id} className="flex items-center gap-3 border-b pb-3 last:border-0"><img src={r.images?.[0]?.url||r.images?.[0]||"/placeholder.svg"} className="h-12 w-16 rounded-lg object-cover"/><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{r.title}</p><p className="text-xs text-slate-500">{r.district} · {r.owner?.fullName||"Owner"}</p></div><span className={`rounded-full px-2 py-1 text-[10px] font-bold ${badge(r.status)}`}>{r.status}</span></div>)}</div></div><div className="rounded-2xl border bg-white p-6"><h2 className="font-extrabold">Recent Reports</h2><div className="mt-4 space-y-3">{reports.slice(0,6).map((r)=><div key={r._id} className="border-b pb-3 last:border-0"><p className="text-sm font-bold">{r.room?.title||"Listing report"}</p><p className="mt-1 text-xs text-slate-500">{r.reason}</p></div>)}{reports.length===0&&<p className="text-sm text-slate-500">No reports yet.</p>}</div></div></div></>;
-const Stat=({label,value,icon:Icon})=><div className="rounded-2xl border bg-white p-5"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-50 text-teal-700"><Icon className="h-4 w-4"/></span><p className="mt-4 text-3xl font-extrabold">{value}</p><p className="mt-1 text-xs font-semibold text-slate-500">{label}</p></div>;
-const Listings=({rooms,onReview,onDelete})=><div className="space-y-4">{rooms.length===0?<div className="rounded-2xl border border-dashed bg-white py-20 text-center text-slate-500">All caught up! There are no listings in this category.</div>:rooms.map((r)=><div key={r._id||r.id} className="overflow-hidden rounded-2xl border bg-white md:flex"><img src={r.images?.[0]?.url||r.images?.[0]||"/placeholder.svg"} className="h-48 w-full object-cover md:h-auto md:w-48"/><div className="flex flex-1 flex-col p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex items-center gap-2"><h3 className="text-lg font-extrabold">{r.title}</h3><span className={`rounded-full px-2 py-1 text-[10px] font-bold ${badge(r.status)}`}>{r.status}</span></div><p className="mt-2 flex items-center gap-1 text-xs text-slate-500"><MapPin className="h-3 w-3"/>{[r.area,r.municipality,r.district].filter(Boolean).join(", ")}</p><p className="mt-1 flex items-center gap-1 text-xs text-slate-500"><Users className="h-3 w-3"/>{r.owner?.fullName||"Owner"} · {r.owner?.email||""}</p></div><p className="font-extrabold text-teal-700">NPR {Number(r.monthlyRent||0).toLocaleString("en-NP")}</p></div><div className="mt-auto flex flex-wrap gap-2 pt-5"><Button size="sm" onClick={()=>onReview(r)}>Review</Button><Button size="sm" variant="destructive" onClick={()=>onDelete(r._id||r.id)} className="ml-auto gap-2"><Trash2 className="h-3.5 w-3.5"/>Delete</Button></div></div></div>)}</div>;
-const Owners=({owners,updateOwner})=><div className="overflow-x-auto rounded-2xl border bg-white"><table className="w-full min-w-[850px] text-sm"><thead className="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500"><tr>{["Owner","Phone","District","Listings","Verified","Joined","Status","Actions"].map((x)=><th key={x} className="px-4 py-3">{x}</th>)}</tr></thead><tbody>{owners.map((o)=><tr key={o._id} className="border-t"><td className="px-4 py-4"><p className="font-bold">{o.fullName}</p><p className="text-xs text-slate-500">{o.email}</p></td><td className="px-4 py-4">{o.phone}</td><td className="px-4 py-4">{o.district}</td><td className="px-4 py-4">{o.listingCount||0} ({o.activeListings||0} active)</td><td className="px-4 py-4">{o.emailVerified?"Yes":"No"}</td><td className="px-4 py-4">{new Date(o.createdAt).toLocaleDateString()}</td><td className="px-4 py-4"><span className={`rounded-full px-2 py-1 text-xs font-bold ${badge(o.status)}`}>{o.status}</span></td><td className="px-4 py-4"><select value={o.status} onChange={(e)=>updateOwner(o._id,e.target.value)} className="rounded-lg border px-2 py-1"><option value="active">Active</option><option value="suspended">Suspended</option><option value="blocked">Blocked</option></select></td></tr>)}</tbody></table></div>;
-const Messages=({messages,updateMessage})=><div className="space-y-3">{messages.length===0?<Empty text="No contact messages yet."/>:messages.map((m)=><div key={m._id} className="rounded-2xl border bg-white p-5"><div className="flex flex-wrap justify-between gap-3"><div><div className="flex items-center gap-2"><h3 className="font-extrabold">{m.subject||"Contact message"}</h3><span className={`rounded-full px-2 py-1 text-[10px] font-bold ${badge(m.status)}`}>{m.status}</span></div><p className="mt-1 text-xs text-slate-500">{m.name} · {m.email} {m.phone?`· ${m.phone}`:""}</p></div><select value={m.status} onChange={(e)=>updateMessage(m._id,e.target.value)} className="h-9 rounded-lg border px-2 text-sm"><option value="new">New</option><option value="read">Read</option><option value="resolved">Resolved</option></select></div><p className="mt-4 text-sm leading-relaxed text-slate-600">{m.message}</p></div>)}</div>;
-const Reports=({reports,updateReport,setReviewRoom})=><div className="space-y-3">{reports.length===0?<Empty text="No reported listings."/>:reports.map((r)=><div key={r._id} className="rounded-2xl border bg-white p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex items-center gap-2"><h3 className="font-extrabold">{r.room?.title||"Deleted listing"}</h3><span className={`rounded-full px-2 py-1 text-[10px] font-bold ${badge(r.status)}`}>{r.status}</span></div><p className="mt-2 text-sm font-semibold text-red-700">{r.reason}</p><p className="mt-1 text-xs text-slate-500">{r.details||"No additional details"}</p></div><div className="flex gap-2">{r.room&&<Button size="sm" variant="outline" onClick={()=>setReviewRoom(r.room)}>Review Listing</Button>}<select value={r.status} onChange={(e)=>updateReport(r._id,e.target.value)} className="h-9 rounded-lg border px-2 text-sm"><option value="new">New</option><option value="reviewed">Reviewed</option><option value="dismissed">Dismissed</option></select></div></div></div>)}</div>;
-const Empty=({text})=><div className="rounded-2xl border border-dashed bg-white py-20 text-center text-slate-500">{text}</div>;
-const Data=({label,value})=><div className="rounded-xl bg-slate-50 p-4"><p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</p><p className="mt-1 font-semibold">{value}</p></div>;
+const Dashboard = ({
+  stats,
+  rooms,
+  reports,
+}) => (
+  <>
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+      <Stat
+        label="Total Listings"
+        value={
+          stats.totalListings || 0
+        }
+        icon={Home}
+      />
+
+      <Stat
+        label="Active Listings"
+        value={
+          stats.activeListings || 0
+        }
+        icon={Check}
+      />
+
+      <Stat
+        label="Pending Approval"
+        value={
+          stats.pendingApproval || 0
+        }
+        icon={Clock}
+      />
+
+      <Stat
+        label="Registered Owners"
+        value={
+          stats.registeredOwners || 0
+        }
+        icon={Users}
+      />
+
+      <Stat
+        label="Listing Views"
+        value={
+          stats.totalListingViews || 0
+        }
+        icon={Eye}
+      />
+
+      <Stat
+        label="Reported Listings"
+        value={
+          stats.reportedListings || 0
+        }
+        icon={Flag}
+      />
+    </div>
+
+    <div className="mt-8 grid gap-6 xl:grid-cols-2">
+      <div className="rounded-2xl border bg-white p-6">
+        <h2 className="font-extrabold">
+          Recent Listings
+        </h2>
+
+        <div className="mt-4 space-y-3">
+          {rooms
+            .slice(0, 6)
+            .map((room) => (
+              <div
+                key={
+                  room._id ||
+                  room.id
+                }
+                className="flex items-center gap-3 border-b pb-3 last:border-0"
+              >
+                <img
+                  src={
+                    room.images?.[0]
+                      ?.url ||
+                    room.images?.[0] ||
+                    "/placeholder.svg"
+                  }
+                  alt=""
+                  className="h-12 w-16 rounded-lg object-cover"
+                />
+
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold">
+                    {room.title}
+                  </p>
+
+                  <p className="text-xs text-slate-500">
+                    {room.district} ·{" "}
+                    {room.owner
+                      ?.fullName ||
+                      "Owner"}
+                  </p>
+                </div>
+
+                <span
+                  className={`rounded-full px-2 py-1 text-[10px] font-bold ${badge(
+                    room.status,
+                  )}`}
+                >
+                  {room.status}
+                </span>
+              </div>
+            ))}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border bg-white p-6">
+        <h2 className="font-extrabold">
+          Recent Reports
+        </h2>
+
+        <div className="mt-4 space-y-3">
+          {reports
+            .slice(0, 6)
+            .map((report) => (
+              <div
+                key={report._id}
+                className="border-b pb-3 last:border-0"
+              >
+                <p className="text-sm font-bold">
+                  {report.room
+                    ?.title ||
+                    "Listing report"}
+                </p>
+
+                <p className="mt-1 text-xs text-slate-500">
+                  {report.reason}
+                </p>
+              </div>
+            ))}
+
+          {reports.length === 0 && (
+            <p className="text-sm text-slate-500">
+              No reports yet.
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  </>
+);
+
+const Stat = ({
+  label,
+  value,
+  icon: Icon,
+}) => (
+  <div className="rounded-2xl border bg-white p-5">
+    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
+      <Icon className="h-4 w-4" />
+    </span>
+
+    <p className="mt-4 text-3xl font-extrabold">
+      {value}
+    </p>
+
+    <p className="mt-1 text-xs font-semibold text-slate-500">
+      {label}
+    </p>
+  </div>
+);
+
+const Listings = ({
+  rooms,
+  onReview,
+  onDelete,
+}) => (
+  <div className="space-y-4">
+    {rooms.length === 0 ? (
+      <div className="rounded-2xl border border-dashed bg-white py-20 text-center text-slate-500">
+        All caught up! There are no
+        listings in this category.
+      </div>
+    ) : (
+      rooms.map((room) => (
+        <div
+          key={
+            room._id || room.id
+          }
+          className="overflow-hidden rounded-2xl border bg-white md:flex"
+        >
+          <img
+            src={
+              room.images?.[0]
+                ?.url ||
+              room.images?.[0] ||
+              "/placeholder.svg"
+            }
+            alt=""
+            className="h-48 w-full object-cover md:h-auto md:w-48"
+          />
+
+          <div className="flex flex-1 flex-col p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-extrabold">
+                    {room.title}
+                  </h3>
+
+                  <span
+                    className={`rounded-full px-2 py-1 text-[10px] font-bold ${badge(
+                      room.status,
+                    )}`}
+                  >
+                    {room.status}
+                  </span>
+                </div>
+
+                <p className="mt-2 flex items-center gap-1 text-xs text-slate-500">
+                  <MapPin className="h-3 w-3" />
+
+                  {[
+                    room.area,
+                    room.municipality,
+                    room.district,
+                  ]
+                    .filter(Boolean)
+                    .join(", ")}
+                </p>
+
+                <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+                  <Users className="h-3 w-3" />
+
+                  {room.owner
+                    ?.fullName ||
+                    "Owner"}{" "}
+                  ·{" "}
+                  {room.owner
+                    ?.email || ""}
+                </p>
+              </div>
+
+              <p className="font-extrabold text-teal-700">
+                NPR{" "}
+                {Number(
+                  room.monthlyRent ||
+                  0,
+                ).toLocaleString(
+                  "en-NP",
+                )}
+              </p>
+            </div>
+
+            <div className="mt-auto flex flex-wrap gap-2 pt-5">
+              <Button
+                size="sm"
+                onClick={() =>
+                  onReview(room)
+                }
+              >
+                Review
+              </Button>
+
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() =>
+                  onDelete(
+                    room._id ||
+                    room.id,
+                  )
+                }
+                className="ml-auto gap-2"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      ))
+    )}
+  </div>
+);
+
+const Owners = ({
+  owners,
+  updateOwner,
+}) => (
+  <div className="overflow-x-auto rounded-2xl border bg-white">
+    <table className="w-full min-w-[850px] text-sm">
+      <thead className="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500">
+        <tr>
+          {[
+            "Owner",
+            "Phone",
+            "District",
+            "Listings",
+            "Verified",
+            "Joined",
+            "Status",
+            "Actions",
+          ].map((heading) => (
+            <th
+              key={heading}
+              className="px-4 py-3"
+            >
+              {heading}
+            </th>
+          ))}
+        </tr>
+      </thead>
+
+      <tbody>
+        {owners.map((owner) => (
+          <tr
+            key={owner._id}
+            className="border-t"
+          >
+            <td className="px-4 py-4">
+              <p className="font-bold">
+                {owner.fullName}
+              </p>
+
+              <p className="text-xs text-slate-500">
+                {owner.email}
+              </p>
+            </td>
+
+            <td className="px-4 py-4">
+              {owner.phone}
+            </td>
+
+            <td className="px-4 py-4">
+              {owner.district}
+            </td>
+
+            <td className="px-4 py-4">
+              {owner.listingCount ||
+                0}{" "}
+              (
+              {owner.activeListings ||
+                0}{" "}
+              active)
+            </td>
+
+            <td className="px-4 py-4">
+              {owner.emailVerified
+                ? "Yes"
+                : "No"}
+            </td>
+
+            <td className="px-4 py-4">
+              {new Date(
+                owner.createdAt,
+              ).toLocaleDateString()}
+            </td>
+
+            <td className="px-4 py-4">
+              <span
+                className={`rounded-full px-2 py-1 text-xs font-bold ${badge(
+                  owner.status,
+                )}`}
+              >
+                {owner.status}
+              </span>
+            </td>
+
+            <td className="px-4 py-4">
+              <select
+                value={owner.status}
+                onChange={(e) =>
+                  updateOwner(
+                    owner._id,
+                    e.target.value,
+                  )
+                }
+                className="rounded-lg border px-2 py-1"
+              >
+                <option value="active">
+                  Active
+                </option>
+
+                <option value="suspended">
+                  Suspended
+                </option>
+
+                <option value="blocked">
+                  Blocked
+                </option>
+              </select>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+);
+
+const Messages = ({
+  messages,
+  updateMessage,
+  deleteMessage,
+}) => (
+  <div className="space-y-3">
+    {messages.length === 0 ? (
+      <Empty text="No contact messages yet." />
+    ) : (
+      messages.map((message) => (
+        <div
+          key={message._id}
+          className="rounded-2xl border bg-white p-5"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-extrabold">
+                  {message.subject ||
+                    "Contact message"}
+                </h3>
+
+                <span
+                  className={`rounded-full px-2 py-1 text-[10px] font-bold ${badge(
+                    message.status,
+                  )}`}
+                >
+                  {message.status}
+                </span>
+              </div>
+
+              <p className="mt-1 text-xs text-slate-500">
+                {message.name} ·{" "}
+                {message.email}
+                {message.phone
+                  ? ` · ${message.phone}`
+                  : ""}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <select
+                value={
+                  message.status
+                }
+                onChange={(e) =>
+                  updateMessage(
+                    message._id,
+                    e.target.value,
+                  )
+                }
+                className="h-9 rounded-lg border px-2 text-sm"
+              >
+                <option value="new">
+                  New
+                </option>
+
+                <option value="read">
+                  Read
+                </option>
+
+                <option value="resolved">
+                  Resolved
+                </option>
+              </select>
+
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() =>
+                  deleteMessage(
+                    message._id,
+                  )
+                }
+                className="gap-2"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+
+                Delete
+              </Button>
+            </div>
+          </div>
+
+          <p className="mt-4 text-sm leading-relaxed text-slate-600">
+            {message.message}
+          </p>
+        </div>
+      ))
+    )}
+  </div>
+);
+
+const Reports = ({
+  reports,
+  updateReport,
+  setReviewRoom,
+}) => (
+  <div className="space-y-3">
+    {reports.length === 0 ? (
+      <Empty text="No reported listings." />
+    ) : (
+      reports.map((report) => (
+        <div
+          key={report._id}
+          className="rounded-2xl border bg-white p-5"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-extrabold">
+                  {report.room
+                    ?.title ||
+                    "Deleted listing"}
+                </h3>
+
+                <span
+                  className={`rounded-full px-2 py-1 text-[10px] font-bold ${badge(
+                    report.status,
+                  )}`}
+                >
+                  {report.status}
+                </span>
+              </div>
+
+              <p className="mt-2 text-sm font-semibold text-red-700">
+                {report.reason}
+              </p>
+
+              <p className="mt-1 text-xs text-slate-500">
+                {report.details ||
+                  "No additional details"}
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              {report.room && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    setReviewRoom(
+                      report.room,
+                    )
+                  }
+                >
+                  Review Listing
+                </Button>
+              )}
+
+              <select
+                value={report.status}
+                onChange={(e) =>
+                  updateReport(
+                    report._id,
+                    e.target.value,
+                  )
+                }
+                className="h-9 rounded-lg border px-2 text-sm"
+              >
+                <option value="new">
+                  New
+                </option>
+
+                <option value="reviewed">
+                  Reviewed
+                </option>
+
+                <option value="dismissed">
+                  Dismissed
+                </option>
+              </select>
+            </div>
+          </div>
+        </div>
+      ))
+    )}
+  </div>
+);
+
+const Empty = ({ text }) => (
+  <div className="rounded-2xl border border-dashed bg-white py-20 text-center text-slate-500">
+    {text}
+  </div>
+);
+
+const Data = ({
+  label,
+  value,
+}) => (
+  <div className="rounded-xl bg-slate-50 p-4">
+    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+      {label}
+    </p>
+
+    <p className="mt-1 font-semibold">
+      {value}
+    </p>
+  </div>
+);
+
 export default Admin;
