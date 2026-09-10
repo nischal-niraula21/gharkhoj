@@ -27,7 +27,7 @@ const HeroSection = () => {
 
     const query = params.toString();
 
-    navigate(query ? `/browse-rooms?${query}` : "/browse-rooms");
+    navigate(query ? `/search?${query}` : "/search");
   };
 
   return (
