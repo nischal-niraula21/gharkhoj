@@ -4,30 +4,18 @@ import { Search } from "lucide-react";
 
 import heroImage from "@/assets/hero-nepal.jpg";
 import { useLang } from "@/contexts/LanguageContext";
+import { buildRoomSearchUrl } from "@/lib/roomSearch";
 
 const HeroSection = () => {
   const navigate = useNavigate();
   const { t } = useLang();
 
   const [location, setLocation] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
+  const [maxRent, setMaxRent] = useState("");
 
   const handleSearch = (e) => {
     e.preventDefault();
-
-    const params = new URLSearchParams();
-
-    if (location.trim()) {
-      params.set("search", location.trim());
-    }
-
-    if (maxPrice) {
-      params.set("maxPrice", maxPrice);
-    }
-
-    const query = params.toString();
-
-    navigate(query ? `/search?${query}` : "/search");
+    navigate(buildRoomSearchUrl({ location, maxRent }));
   };
 
   return (
@@ -102,8 +90,8 @@ const HeroSection = () => {
               <input
                 type="number"
                 min="0"
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value)}
+                value={maxRent}
+                onChange={(e) => setMaxRent(e.target.value)}
                 placeholder={t("Any price")}
                 className="w-full bg-transparent text-base text-slate-800 outline-none placeholder:text-slate-500"
               />
