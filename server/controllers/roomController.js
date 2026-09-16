@@ -28,6 +28,16 @@ const publicRoomShape = (room) => {
   };
 };
 
+const publicRoomListShape = (room) => {
+  const { _id, coverImage, ...rest } = room;
+
+  return {
+    ...rest,
+    id: _id?.toString?.() || room.id,
+    images: coverImage ? [coverImage] : [],
+  };
+};
+
 export const listPublicRooms = async (req, res, next) => {
   try {
     const q = { status: "approved" };
@@ -85,11 +95,15 @@ export const listPublicRooms = async (req, res, next) => {
           : { createdAt: -1 };
 
     const rooms = await Room.find(q)
+      .select(
+        "title monthlyRent roomType numberOfRooms province district municipality area nearestLandmark furnishedStatus facilities coverImage createdAt",
+      )
       .sort(sort)
-      .limit(200);
+      .limit(200)
+      .lean();
 
     res.json({
-      rooms: rooms.map(publicRoomShape),
+      rooms: rooms.map(publicRoomListShape),
     });
   } catch (error) {
     next(error);
