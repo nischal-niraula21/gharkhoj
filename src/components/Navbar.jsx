@@ -56,8 +56,8 @@ const Navbar = () => {
                 key={to}
                 to={to}
                 className={`text-sm font-semibold transition-colors ${active(to)
-                    ? "text-primary"
-                    : "text-foreground/80 hover:text-primary"
+                  ? "text-primary"
+                  : "text-foreground/80 hover:text-primary"
                   }`}
               >
                 {t(label)}
@@ -67,14 +67,14 @@ const Navbar = () => {
             <Link
               to="/favorites"
               className={`relative flex items-center gap-1.5 text-sm font-semibold ${active("/favorites")
-                  ? "text-primary"
-                  : "text-foreground/80 hover:text-primary"
+                ? "text-primary"
+                : "text-foreground/80 hover:text-primary"
                 }`}
             >
               <Bookmark
                 className={`h-4 w-4 ${favorites.length
-                    ? "fill-primary text-primary"
-                    : ""
+                  ? "fill-primary text-primary"
+                  : ""
                   }`}
               />
 
@@ -95,8 +95,8 @@ const Navbar = () => {
                   type="button"
                   onClick={() => setLang(l)}
                   className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${lang === l
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                     }`}
                 >
                   {l === "EN" ? "EN" : "नेपाली"}
@@ -104,13 +104,13 @@ const Navbar = () => {
               ))}
             </div>
           </div>
-
           {/* 
             Single theme button:
             - Desktop: stays directly in navbar
             - Mobile: stays beside hamburger
             - Never goes inside mobile menu
           */}
+
           <ThemeToggle />
 
           {/* Desktop owner controls */}
@@ -181,8 +181,8 @@ const Navbar = () => {
           >
             <Bookmark
               className={`h-4 w-4 ${favorites.length
-                  ? "fill-primary text-primary"
-                  : ""
+                ? "fill-primary text-primary"
+                : ""
                 }`}
             />
 
@@ -201,8 +201,8 @@ const Navbar = () => {
                 type="button"
                 onClick={() => setLang(l)}
                 className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${lang === l
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground"
                   }`}
               >
                 {l === "EN" ? "EN" : "नेपाली"}
