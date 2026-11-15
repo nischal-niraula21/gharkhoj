@@ -198,7 +198,7 @@ const Auth = () => {
                 }
               />
 
-              <div className="text-right text-sm">
+              <div className="text-center text-sm">
                 <Link
                   to="/forgot-password"
                   className="font-semibold text-primary hover:underline"
@@ -206,7 +206,6 @@ const Auth = () => {
                   {t("Forgot Password?")}
                 </Link>
               </div>
-
               <Button
                 type="submit"
                 disabled={loading}

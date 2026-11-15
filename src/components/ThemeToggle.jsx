@@ -7,13 +7,10 @@ const ThemeToggle = () => {
     useEffect(() => {
         const savedTheme = localStorage.getItem("gharkhoj-theme");
 
-        const shouldUseDark =
-            savedTheme === "dark" ||
-            (!savedTheme &&
-                window.matchMedia("(prefers-color-scheme: dark)").matches);
+        // Light mode is the default for first-time visitors.
+        const shouldUseDark = savedTheme === "dark";
 
         setDark(shouldUseDark);
-
         document.documentElement.classList.toggle(
             "dark",
             shouldUseDark,
